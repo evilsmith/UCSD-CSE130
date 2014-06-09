@@ -51,11 +51,17 @@ sealed abstract class BST[A <% Ordered[A]] extends AbstractSet[A]
     }
 
   def contains(x: A): Boolean = 
-    sys.error("TO BE DONE: contains")
-
-  def fold[B](f: (B, A) => B, acc: B): B = 
-    sys.error("TO BE DONE: fold")
+  {
+    val list = this.getElts
+    list.contains(x)
+  }
   
+  def fold[B](f: (B, A) => B, acc: B): B = 
+    this match{
+      case Leaf() => acc
+      case Node(e, l, r) => r.fold(f, f(l.fold(f, acc), e))
+    }
+
   def iterator : Iterator[A] = {
     this
     .fold(((elts : List[A], x) =>  x::elts), List())
@@ -81,14 +87,24 @@ sealed abstract class BST[A <% Ordered[A]] extends AbstractSet[A]
   //}
 
   def add(x:A): BST[A] = 
-    sys.error("TO BE DONE")
-  
+    this match{
+      case Leaf()        => Node(x, Leaf(), Leaf())
+      case Node(e, l, r) => if(x < e) Node(e, l.add(x), r)
+                            else if(x > e) Node (e, l, r.add(x))
+			    else Node(x, l, r)
+    } 
+
   def removeMin : (A, BST[A]) = 
-    sys.error("TO BE DONE")
-  
+  {
+    var toL = this.getElts
+    (toL.head, BST.build(toL.tail))
+  }
+
   def remove(x: A): BST[A] = 
-    sys.error("TO BE DONE")
-  
+  {
+    var toL = this.iterator.toList 
+    BST.build(toL.filter(f=> f!=x))
+  }
 }
 
 object BST {
@@ -108,7 +124,11 @@ object BST {
     } else if (xs.length == 1) {
       Node(xs(0), Leaf (), Leaf())
     } else {
-      sys.error("TO BE DONE")
+      xs.distinct match{
+        case x :: xs => val(lt_st, rt_st) = xs partition(_ <= x)
+	                Node(x, build(lt_st), build(rt_st))
+	case _ => Leaf()
+      } 
     }
   }
 }
@@ -175,7 +195,7 @@ object BstProperties extends Properties("BST") {
    
   //Holds after "add": Fix this property
   val prop_multiset = forAll((xs: List[Int]) => 
-    BST(xs).toList == xs.sorted
+    BST(xs).toList == xs.distinct.sorted
   )
 
   //Holds after "removeMin"

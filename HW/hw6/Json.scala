@@ -9,15 +9,22 @@ class Doc(val lines: List[String]) {
     ls.map(l => l + " " * (width - l.length))
 
   def hcatT(that: Doc) : Doc = { 
-    sys.error("TO BE DONE")
+    new Doc(this.lines.zipAll(that.lines, "", "").map((x: (String, String)) => (x._1 + " " * (this.width - x._1.length) + x._2)))
   }
 
   def hcatB(that: Doc) : Doc = {
-    sys.error("TO BE DONE")
+    var l = this.lines.reverse.zipAll(that.lines.reverse, "", "")
+    var list : List[String] = List()
+    l = l.reverse
+    for(line <- l){
+      val (a, b) = line
+      list = (list ::: List(a + " " * (width - a.length) + b))
+    }
+    new Doc(list)
   } 
 
   def vcat(that: Doc) : Doc = { 
-    sys.error("TO BE DONE")
+    new Doc(this.lines ++ that.lines)
   }
   
 }
@@ -38,12 +45,15 @@ object Doc {
 
   // Should be tail-recursive
   def padBegin[A](xs: List[A], n: Int, x:A): List[A] = {
-    sys.error("TO BE DONE")
+    if (xs.length < n)
+      padBegin(x::xs, n, x)
+    else
+      xs
   }
 
   // Should be tail-recursive (or not at all recursive!) 
   def padEnd[A](xs: List[A], n: Int, x:A): List[A] = {
-    sys.error("TO BE DONE")
+    xs.padTo(n, x)
   }
   
 }
@@ -64,7 +74,12 @@ object JVal {
     Doc.vcats(ds, Doc("{ "), Doc(", "), Doc(" }"))
   
   def render(jv: JVal) : Doc = { 
-    sys.error("TO BE DONE")
+    jv match{
+      case JStr(s) => Doc("%s".format(s))
+      case JNum(n) => Doc(n.toString)
+      case JObj(o) => renderDocs(o.map((x: (String, JVal)) => (Doc("%s : ".format(x._1)).hcatT(render(x._2)))).toList)
+      case JArr(a) => Doc.vcats((a.map((x: JVal) => (render(x)))), Doc("[ "), Doc(", "), Doc(" ]"))
+    }
   }
 
 }
@@ -108,19 +123,31 @@ object Json {
   }
 
   implicit def tuple3Json[A1 : Json, A2 : Json, A3 : Json] = new Json[(A1, A2, A3)] {
-    def json(t: (A1, A2, A3)): JVal = sys.error("TO BE DONE")
+    def json(t: (A1, A2, A3)): JVal = 
+      JObj(Map("fst" -> Json.toJson(t._1), 
+               "snd" -> Json.toJson(t._2), 
+               "thd" -> Json.toJson(t._3)))
   }
 
   implicit def listJson[A : Json] = new Json[List[A]]{ 
-    def json(t: List[A]): JVal = sys.error("TO BE DONE")
+    def json(t: List[A]): JVal =
+      JArr(t.map(Json.toJson(_)))
   }
 
   implicit def arrJson[A : Json] = new Json[Array[A]] { 
-    def json(t: Array[A]): JVal = sys.error("TO BE DONE")
+    def json(t: Array[A]): JVal =
+      JArr(t.toList.map(Json.toJson(_)))
   }
 
   implicit def mapJson[A : Json] = new Json[Map[String, A]] { 
-    def json(t: Map[String, A]): JVal = sys.error("TO BE DONE")
+    def json(t: Map[String, A]): JVal = { 
+     var map: Map[String, JVal] = Map()
+     for (entry <- t) {
+      var (a, b) = entry
+      map += a -> Json.toJson(b)
+     }
+     JObj(map)
+  }
   }
 
 }
